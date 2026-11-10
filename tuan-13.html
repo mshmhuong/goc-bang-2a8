@@ -151,7 +151,7 @@ function setVoice(n){voice=voices.find(x=>x.name===n)||voice;try{localStorage.se
 try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
 const VAUD={};
 let vAu=null;
-function say(t,slow){try{const a=VAUD[slow?t+'|s':t]||VAUD[t];if(a){try{speechSynthesis.cancel()}catch(e){}if(vAu){vAu.pause()}vAu=new Audio(a);vAu.play().catch(()=>{try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=slow?0.7:0.88;u.pitch=1;speechSynthesis.speak(u)}catch(e){}});return}}catch(e){}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=slow?0.7:0.88;u.pitch=1;speechSynthesis.speak(u)}catch(e){}}
+function say(t,slow){try{const a=VAUD[slow?t+'|s':t]||VAUD[t];if(a){try{speechSynthesis.cancel()}catch(e){}if(vAu){vAu.pause()}vAu=new Audio(a);vAu.play().catch(()=>{try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=slow?0.6:0.78;u.pitch=1;speechSynthesis.speak(u)}catch(e){}});return}}catch(e){}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=slow?0.6:0.78;u.pitch=1;speechSynthesis.speak(u)}catch(e){}}
 let ac=null;
 function beep(ok){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);const t=ac.currentTime;
  if(ok){o.frequency.setValueAtTime(660,t);o.frequency.setValueAtTime(990,t+.1)}else{o.frequency.setValueAtTime(220,t)}
@@ -302,7 +302,7 @@ function home(){
   </div>
   <div class="label" style="margin-top:16px">Hoặc chơi từng phần</div>
   <div class="chips">${STAGES.map((s,i)=>`<button class="chip" onclick="play([${i}])">${s.name}</button>`).join('')}</div>
-  <div style="margin-top:16px"><label class="label" for="vsel">Giọng đọc (giống trang Ôn thi Viết 4; đổi giọng ở đây nếu muốn)</label>
+  <div style="margin-top:16px"><label class="label" for="vsel">Giọng đọc. Rõ nhất: mở bằng Microsoft Edge rồi chọn giọng Aria hoặc Jenny (Natural)</label>
    <div class="row" style="margin-top:6px"><select id="vsel" class="btn" style="flex:3 1 200px;min-width:0" onchange="setVoice(this.value)"></select><button class="btn blue" style="flex:1 1 90px" onclick="say('Hello! I am ready. Desk, tens, ones.')">🔊 Thử</button></div></div>
   ${best?`<p class="tip center" style="margin-top:10px">Kỷ lục của con: ⭐ ${best}</p>`:''}
  </div>
