@@ -201,14 +201,15 @@ function bindRec(w){
  };
 }
 
-/* ---- chấm điểm giọng đọc: đúng âm, đúng chữ, ngữ điệu ---- */
+/* ---- chấm điểm giọng đọc: chỉ ngữ điệu ---- */
 const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
 const gN=s=>String(s).toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
 function gLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=[];for(let j=0;j<=n;j++)p[j]=j;for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
 const gSim=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-gLev(a,b)/L:1};
 function startSR(){
  const o={alts:[],done:false,p:null};
- if(!SRC||location.protocol==='file:')return o; /* mở từ file trong máy thì phần nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
+ return o; /* không dùng nhận chữ nữa: chỉ chấm ngữ điệu, và trình duyệt khỏi hỏi micro thêm lần nào */
+ if(!SRC)return o; /* mở từ file trong máy thì phần nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
  try{const r=new SRC();r.lang='en-US';r.interimResults=false;r.maxAlternatives=5;r.continuous=false;
   o.p=new Promise(res=>{r.onresult=e=>{try{const top=[];for(let i=0;i<e.results.length;i++)top.push(e.results[i][0]);
     const joined=top.map(x=>x.transcript).join(' ');const conf=top.reduce((s,x)=>s+(x.confidence||0),0)/Math.max(1,top.length);
@@ -266,26 +267,15 @@ async function scoreProsody(blob,nWords){
 const starsOf=v=>{const n=Math.max(1,Math.min(5,Math.round(v/20)));return '★'.repeat(n)+'☆'.repeat(5-n)};
 const barRow=(name,v,note)=>`<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:800"><span>${name}</span><span style="color:var(--sun)">${v==null?'—':starsOf(v)+' '+v}</span></div><div class="prog" style="margin-top:4px;height:10px"><i style="width:${v==null?0:v}%;background:${v>=75?'var(--good)':v>=50?'var(--sun)':'var(--bad)'}"></i></div>${note?`<div class="tip" style="margin:3px 0 0">${note}</div>`:''}</div>`;
 async function gradeIt(blob,w,sro,box){
- box.hidden=false;box.innerHTML='<p class="tip center">⏳ Đang chấm điểm giọng của con...</p>';
- await stopSR(sro);
- const target=w.en, nW=gN(target).split(' ').length;
- const ws=scoreWords(target,sro);
+ /* chỉ chấm ngữ điệu */
+ box.hidden=false;box.innerHTML='<p class="tip center">⏳ Đang chấm ngữ điệu của con...</p>';
+ const nW=gN(w.en).split(' ').length;
  const pr=await scoreProsody(blob,nW);
- let chu=null,am=null,notesC='',notesA='';
- if(ws){chu=Math.round(ws.chu*100);
-  const confPart=ws.conf>0?ws.conf:ws.chu;
-  am=Math.round((ws.am*.5+confPart*.5)*100);if(ws.chu<.5)am=Math.min(am,55);
-  notesC=`Máy nghe được: “${esc(ws.heard)}”`+(ws.chu<1?`. Cần nói: “${esc(target)}”`:'');
-  const bad=ws.rows.filter(r=>r.v<.999).map(r=>r.t);
-  notesA=bad.length?`Con luyện thêm âm của: <b>${bad.map(esc).join(', ')}</b>. Bấm “Nghe chậm” rồi đọc theo.`:(am>=75?'Phát âm rõ, máy nhận ra ngay.':'Từ đúng nhưng chưa thật rõ, con đọc chậm và tròn miệng hơn.')}
- else{notesC=notesA=SRC?'Máy chưa nghe ra chữ nào, con thử thu lại gần micro hơn.':'Trình duyệt này không chấm được chữ và âm. Mở trang bằng Chrome hoặc Edge để chấm đủ 3 mục.'}
- const iv=pr?pr.score:null;
- const parts=[chu,am,iv].filter(v=>v!=null);
- const total=parts.length?Math.round(parts.reduce((a,b)=>a+b,0)/parts.length):null;
+ const total=pr?pr.score:null;
  let msg='';
  if(total!=null)msg=total>=85?'Tuyệt vời! Con đọc rất hay 🌟':total>=70?'Giỏi lắm! Thêm chút nữa là hoàn hảo 👏':total>=50?'Khá rồi, con nghe mẫu rồi thu lại nhé 💪':'Cố lên! Nghe chậm vài lần rồi thu lại nhé 🐢';
- box.innerHTML=`<div class="center" style="margin-top:4px"><div class="label">Điểm giọng đọc</div><div class="big" style="font-size:2.4rem">${total==null?'—':total}<small style="font-size:1rem">/100</small></div><div style="color:var(--sun);font-size:1.4rem;letter-spacing:2px">${total==null?'':starsOf(total)}</div><div class="fb ok" style="margin-top:4px">${msg}</div></div>
- ${barRow('🔤 Đúng chữ',chu,notesC)}${barRow('👄 Đúng âm',am,notesA)}${barRow('🎵 Ngữ điệu',iv,pr?pr.why:'Chưa đo được ngữ điệu.')}
+ box.innerHTML=`<div class="center" style="margin-top:4px"><div class="label">Điểm ngữ điệu</div><div class="big" style="font-size:2.4rem">${total==null?'—':total}<small style="font-size:1rem">/100</small></div><div style="color:var(--sun);font-size:1.4rem;letter-spacing:2px">${total==null?'':starsOf(total)}</div><div class="fb ok" style="margin-top:4px">${msg}</div></div>
+ ${barRow('🎵 Ngữ điệu',total,pr?pr.why:'Chưa đo được ngữ điệu, con thử thu lại gần micro hơn.')}
  <p class="tip" style="margin-top:12px">Máy chấm chỉ để tham khảo, cô và bố mẹ nghe là chính xác nhất.</p>`;
 }
 
