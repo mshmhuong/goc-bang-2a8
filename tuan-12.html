@@ -201,15 +201,14 @@ function bindRec(w){
  };
 }
 
-/* ---- chấm điểm giọng đọc: chỉ ngữ điệu ---- */
+/* ---- chấm điểm giọng đọc: đọc đúng từ + ngữ điệu ---- */
 const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
 const gN=s=>String(s).toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
 function gLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=[];for(let j=0;j<=n;j++)p[j]=j;for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
 const gSim=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-gLev(a,b)/L:1};
 function startSR(){
  const o={alts:[],done:false,p:null};
- return o; /* không dùng nhận chữ nữa: chỉ chấm ngữ điệu, và trình duyệt khỏi hỏi micro thêm lần nào */
- if(!SRC)return o; /* mở từ file trong máy thì phần nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
+ if(!SRC||location.protocol==='file:')return o; /* mở từ file trong máy thì nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
  try{const r=new SRC();r.lang='en-US';r.interimResults=false;r.maxAlternatives=5;r.continuous=false;
   o.p=new Promise(res=>{r.onresult=e=>{try{const top=[];for(let i=0;i<e.results.length;i++)top.push(e.results[i][0]);
     const joined=top.map(x=>x.transcript).join(' ');const conf=top.reduce((s,x)=>s+(x.confidence||0),0)/Math.max(1,top.length);
@@ -266,16 +265,32 @@ async function scoreProsody(blob,nWords){
  }catch(e){return null}}
 const starsOf=v=>{const n=Math.max(1,Math.min(5,Math.round(v/20)));return '★'.repeat(n)+'☆'.repeat(5-n)};
 const barRow=(name,v,note)=>`<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:800"><span>${name}</span><span style="color:var(--sun)">${v==null?'—':starsOf(v)+' '+v}</span></div><div class="prog" style="margin-top:4px;height:10px"><i style="width:${v==null?0:v}%;background:${v>=75?'var(--good)':v>=50?'var(--sun)':'var(--bad)'}"></i></div>${note?`<div class="tip" style="margin:3px 0 0">${note}</div>`:''}</div>`;
+/* máy hay nghe nhầm mấy từ đọc giống nhau: coi như đúng */
+const gFix=s=>String(s).toLowerCase().replace(/\b10'?s\b/g,'tens').replace(/\b1'?s\b/g,'ones').replace(/\btense\b/g,'tens').replace(/\bonce\b/g,'ones').replace(/\bcolouring\b/g,'coloring');
 async function gradeIt(blob,w,sro,box){
- /* chỉ chấm ngữ điệu */
- box.hidden=false;box.innerHTML='<p class="tip center">⏳ Đang chấm ngữ điệu của con...</p>';
- const nW=gN(w.en).split(' ').length;
+ /* 2 mục: Đọc đúng từ (máy nghe ra chữ gì) và Ngữ điệu */
+ box.hidden=false;box.innerHTML='<p class="tip center">⏳ Đang chấm giọng của con...</p>';
+ await stopSR(sro);
+ const target=w.en, nW=gN(target).split(' ').length;
+ if(sro&&sro.alts)sro.alts.forEach(a=>{a.t=gFix(a.t)});
+ const ws=scoreWords(target,sro);
  const pr=await scoreProsody(blob,nW);
- const total=pr?pr.score:null;
- let msg='';
- if(total!=null)msg=total>=85?'Tuyệt vời! Con đọc rất hay 🌟':total>=70?'Giỏi lắm! Thêm chút nữa là hoàn hảo 👏':total>=50?'Khá rồi, con nghe mẫu rồi thu lại nhé 💪':'Cố lên! Nghe chậm vài lần rồi thu lại nhé 🐢';
- box.innerHTML=`<div class="center" style="margin-top:4px"><div class="label">Điểm ngữ điệu</div><div class="big" style="font-size:2.4rem">${total==null?'—':total}<small style="font-size:1rem">/100</small></div><div style="color:var(--sun);font-size:1.4rem;letter-spacing:2px">${total==null?'':starsOf(total)}</div><div class="fb ok" style="margin-top:4px">${msg}</div></div>
- ${barRow('🎵 Ngữ điệu',total,pr?pr.why:'Chưa đo được ngữ điệu, con thử thu lại gần micro hơn.')}
+ const iv=pr?pr.score:null;
+ let dung=null,head='',cls='',note='';
+ if(ws){
+  const ow=target.split(' ');const bad=ws.rows.map((r,i)=>r.v<.999?(ow[i]||r.t):null).filter(Boolean);
+  dung=Math.round((ws.chu*.6+ws.am*.4)*100);
+  const heard=`Máy nghe được: “<b>${esc(ws.heard)}</b>”.`;
+  if(!bad.length){dung=100;head='✅ Con đọc ĐÚNG rồi!';cls='ok';note=heard}
+  else if(ws.chu>=.5||ws.am>=.7){head='🟡 Gần đúng, còn sai một chút';cls='';note=`${heard} Cần đọc: “<b>${esc(target)}</b>”. Con luyện lại: <b>${bad.map(esc).join(', ')}</b>.`}
+  else{dung=Math.min(dung,40);head='❌ Chưa đúng, con đọc lại nhé';cls='no';note=`${heard} Cần đọc: “<b>${esc(target)}</b>”. Bấm “Giọng mẫu” nghe rồi thu lại.`}
+ }else if(location.protocol==='file:'){note='Trang đang mở từ file trong máy nên máy chưa chấm được đúng sai. Mở bằng link trên mạng (quét mã QR) bằng Chrome hoặc Edge để chấm.'}
+ else if(!SRC){note='Trình duyệt này chưa chấm được đúng sai. Mở trang bằng Chrome hoặc Edge nhé.'}
+ else{dung=0;head='❓ Máy chưa nghe ra từ nào';cls='no';note='Con bấm Thu lại, đọc to, rõ và gần micro hơn nhé.'}
+ const total=dung!=null?(iv!=null?Math.round(dung*.7+iv*.3):dung):iv;
+ const col=cls==='ok'?'var(--good)':cls==='no'?'var(--bad)':'var(--sun)';
+ box.innerHTML=`<div class="center" style="margin-top:4px">${head?`<div style="font-weight:900;font-size:1.35rem;color:${col}">${head}</div>`:''}<div class="label" style="margin-top:6px">Điểm giọng đọc</div><div class="big" style="font-size:2.4rem">${total==null?'—':total}<small style="font-size:1rem">/100</small></div><div style="color:var(--sun);font-size:1.4rem;letter-spacing:2px">${total==null?'':starsOf(total)}</div></div>
+ ${barRow('🎯 Đọc đúng từ',dung,note)}${barRow('🎵 Ngữ điệu',iv,pr?pr.why:'Chưa đo được ngữ điệu, con thử thu lại gần micro hơn.')}
  <p class="tip" style="margin-top:12px">Máy chấm chỉ để tham khảo, cô và bố mẹ nghe là chính xác nhất.</p>`;
 }
 
@@ -292,8 +307,7 @@ function home(){
   </div>
   <div class="label" style="margin-top:16px">Hoặc chơi từng phần</div>
   <div class="chips">${STAGES.map((s,i)=>`<button class="chip" onclick="play([${i}])">${s.name}</button>`).join('')}</div>
-  <div style="margin-top:16px"><label class="label">Giọng đọc: giọng cô Ava thu sẵn, rõ và tự nhiên. Máy nào, trình duyệt nào nghe cũng giống nhau.</label>
-   <div class="row" style="margin-top:6px"><select id="vsel" hidden onchange="setVoice(this.value)"></select><button class="btn blue" style="flex:1 1 200px" onclick="say('Hello! I am ready. Smallest, biggest, square.')">🔊 Nghe thử giọng đọc</button></div></div>
+  <select id="vsel" hidden></select>
   ${best?`<p class="tip center" style="margin-top:10px">Kỷ lục của con: ⭐ ${best}</p>`:''}
  </div>
  <div class="learnlist">${W.map((w,i)=>`<button class="mini" onclick="learn(${i})"><img class="pic" src="${IMG[w.id]}" alt=""><b>${w.en}</b><span>${w.ipa}</span><div class="read">${w.vi}</div></button>`).join('')}</div>`;
