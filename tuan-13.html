@@ -52,9 +52,13 @@ button:focus-visible,label.btn:focus-within{outline:3px solid var(--sky);outline
 .prog{height:12px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:12px}
 .prog i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
 .stage{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.stage span{font-size:.8rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
-.stage span.on{background:var(--sun);color:#2a1e00}
-.stage span.done{background:var(--good);color:#fff}
+.stage button{font:inherit;font-size:.85rem;font-weight:800;padding:8px 12px;min-height:40px;border:0;border-radius:999px;background:var(--soft);color:var(--muted);cursor:pointer}
+.stage button.hm{background:#fff;border:2px solid var(--line);color:var(--ink,#22332b)}
+#nextBox{position:sticky;bottom:10px;z-index:6}
+#nextBox .btn{box-shadow:0 6px 18px rgba(0,0,0,.28);font-size:1.1rem}
+#nextBox .nfb{background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 10px;margin-top:10px;font-weight:800;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.stage button.on{background:var(--sun);color:#2a1e00}
+.stage button.done{background:var(--good);color:#fff}
 .slots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:14px 0;min-height:52px}
 .slot{width:40px;height:48px;border-bottom:4px solid var(--muted);font-family:var(--display);font-size:1.6rem;display:flex;align-items:center;justify-content:center}
 .gap{width:16px}
@@ -153,9 +157,19 @@ const VAUD={"coloring a square": "data:audio/mpeg;base64,//NkxAAAAANIAAAAAExBTUV
 let vAu=null;
 function say(t,slow){const tts=()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=slow?0.6:0.78;u.pitch=1;speechSynthesis.speak(u)}catch(e){}};try{const a=VAUD[slow?t+'|s':t]||VAUD[t];if(!a){tts();return}try{speechSynthesis.cancel()}catch(e){}if(vAu){try{vAu.pause()}catch(e){}}const au=new Audio(a);vAu=au;try{au.preservesPitch=true;au.playbackRate=(slow&&!VAUD[t+'|s'])?0.75:1}catch(e){}let bad=false;const fb=()=>{if(bad||vAu!==au)return;bad=true;tts()};au.onerror=fb;const p=au.play();if(p&&p.catch)p.catch(fb)}catch(e){tts()}}
 let ac=null;
-function beep(ok){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);const t=ac.currentTime;
+/* tiếng mừng / tiếng báo sai: phát bằng thẻ audio để điện thoại (kể cả iPhone gạt im lặng) vẫn nghe được */
+function mkTone(notes){const sr=22050;let n=0;notes.forEach(x=>n+=Math.round(x[1]*sr));const d=new Int16Array(n);let p=0;
+ notes.forEach(x=>{const f=x[0],L=Math.round(x[1]*sr);for(let i=0;i<L;i++){const t=i/sr,env=Math.min(1,i/200)*Math.exp(-3*t/x[1]);d[p++]=Math.round(32767*.55*env*(Math.sin(2*Math.PI*f*t)+.3*Math.sin(4*Math.PI*f*t))/1.3)}});
+ const b=new Uint8Array(44+n*2),v=new DataView(b.buffer),ws=(o,s)=>{for(let i=0;i<s.length;i++)b[o+i]=s.charCodeAt(i)};
+ ws(0,'RIFF');v.setUint32(4,36+n*2,true);ws(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++)v.setInt16(44+i*2,d[i],true);let s='';for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return 'data:audio/wav;base64,'+btoa(s)}
+let SFX=null;
+function sfxInit(){if(SFX)return;try{SFX={ok:new Audio(mkTone([[523,.11],[659,.11],[784,.11],[1047,.32]])),no:new Audio(mkTone([[330,.16],[247,.3]]))};SFX.ok.preload=SFX.no.preload='auto'}catch(e){SFX={}}}
+try{sfxInit()}catch(e){}
+function beepOld(ok){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);const t=ac.currentTime;
  if(ok){o.frequency.setValueAtTime(660,t);o.frequency.setValueAtTime(990,t+.1)}else{o.frequency.setValueAtTime(220,t)}
- g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.start(t);o.stop(t+.3)}catch(e){}}
+ g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.start(t);o.stop(t+.35)}catch(e){}}
+function beep(ok){try{sfxInit();const a=SFX[ok?'ok':'no'];if(!a){beepOld(ok);return}a.currentTime=0;a.volume=ok?1:.7;const p=a.play();if(p&&p.catch)p.catch(()=>beepOld(ok))}catch(e){beepOld(ok)}}
 const sp=w=>`<div class="row" style="margin-top:12px"><button class="btn blue" onclick="event.stopPropagation();sayW('${w.id}')">🔊 Nghe</button><button class="btn" onclick="event.stopPropagation();sayW('${w.id}',1)">🐢 Nghe chậm</button></div>`;
 
 /* ---- recorder: record own voice, play it back next to the model voice ---- */
@@ -195,7 +209,7 @@ function bindRec(w){
    const live=MIC&&MIC.getAudioTracks().some(t=>t.readyState==='live');if(!live)MIC=await navigator.mediaDevices.getUserMedia({audio:true});const st=MIC;REC.stream=st;
    const chunks=[];const mr=new MediaRecorder(st);REC.mr=mr;
    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-   mr.onstop=()=>{btn.textContent='🔴 Thu lại';btn.classList.remove('recording');
+   mr.onstop=()=>{if(location.protocol!=='file:'){try{st.getTracks().forEach(t=>t.stop())}catch(e){}MIC=null}btn.textContent='🔴 Thu lại';btn.classList.remove('recording');
     ready(new Blob(chunks,{type:(mr.mimeType||'audio/webm').split(';')[0]}))};
    REC.sro=startSR();{const bx=$('#scoreBox');if(bx)bx.hidden=true}mr.start();btn.textContent='⏹ Dừng';btn.classList.add('recording');tip.textContent='Đang thu... con đọc to nhé!';
    REC.timer=setTimeout(()=>{if(mr.state==='recording')mr.stop()},6000);
@@ -365,10 +379,12 @@ function play(only){
 }
 const curStage=()=>STAGES[G.list[G.si]];
 function head(){
- const pct=Math.round(G.done/G.total*100);
- return `<div class="stage">${G.list.map((k,i)=>`<span class="${i<G.si?'done':i==G.si?'on':''}">${STAGES[k].name}</span>`).join('')}</div>
+ const pct=Math.round(G.done/G.total*100),cur=G.list[G.si];
+ /* thanh các phần: bấm được để chuyển phần, có nút về trang đầu */
+ return `<div class="stage"><button class="hm" onclick="home()">🏠 Trang đầu</button>${STAGES.map((s,k)=>{const i=G.list.indexOf(k);return `<button class="${k===cur?'on':(i>=0&&i<G.si)?'done':''}" onclick="jumpStage(${k})">${s.name}</button>`}).join('')}</div>
  <div class="prog"><i style="width:${pct}%"></i></div>`;
 }
+function jumpStage(k){stopRec();const i=G.list.indexOf(k);if(i<0||G.list.length===1){play([k]);return}G.si=i;G.queue=shuffle(W);G.done=i*W.length;next()}
 function next(){
  stopRec();
  if(!G.queue.length){G.si++;if(G.si>=G.list.length)return finish();G.queue=shuffle(W)}
@@ -382,7 +398,7 @@ function result(ok,w,msg,manual){
  else{beep(0);fb.className='fb no';fb.textContent=msg||'Chưa đúng, con thử lại nhé!';G.miss[w.id]=(G.miss[w.id]||0)+1;
   // put the word back a little later in this stage so it gets practised again
   G.queue.shift();G.queue.splice(Math.min(2,G.queue.length),0,w);}
- if(manual){$('#nextBox').innerHTML=`<div class="row" style="margin-top:12px"><button class="btn primary" id="goNext">Tiếp →</button></div>`;$('#goNext').onclick=next}
+ if(manual){{const rb=$('#recBox');if(rb)rb.before(fb)}$('#nextBox').innerHTML=`<div class="row" style="margin-top:12px"><button class="btn primary" id="goNext">Câu tiếp theo →</button></div>`;$('#goNext').onclick=next}
  else setTimeout(next,ok?900:1500);
 }
 function miss(w,text){beep(0);G.miss[w.id]=(G.miss[w.id]||0)+1;$('#fb').className='fb no';$('#fb').textContent=text}
