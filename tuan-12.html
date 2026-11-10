@@ -209,7 +209,7 @@ function bindRec(w){
    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
    mr.onstop=()=>{if(location.protocol!=='file:'){try{st.getTracks().forEach(t=>t.stop())}catch(e){}MIC=null}btn.textContent='🔴 Thu lại';btn.classList.remove('recording');
     ready(new Blob(chunks,{type:(mr.mimeType||'audio/webm').split(';')[0]}))};
-   REC.sro=startSR();{const bx=$('#scoreBox');if(bx)bx.hidden=true}mr.start();btn.textContent='⏹ Dừng';btn.classList.add('recording');tip.textContent='Đang thu... con đọc to nhé!';
+   {const bx=$('#scoreBox');if(bx)bx.hidden=true}mr.start();btn.textContent='⏹ Dừng';btn.classList.add('recording');tip.textContent='Đang thu... con đọc to nhé!';REC.sro=startSR({target:w.en,ready:()=>{if(mr.state==='recording')tip.textContent='🎤 Máy đang nghe, con đọc to nhé! Đọc xong máy tự chấm.'},done:()=>{if(mr.state==='recording')tip.textContent='Máy nghe xong rồi, đang chấm...';setTimeout(()=>{if(mr.state==='recording')mr.stop()},350)}});
    REC.timer=setTimeout(()=>{if(mr.state==='recording')mr.stop()},6000);
   }catch(e){if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')){tip.textContent='Máy chưa cho phép dùng micro. Bấm biểu tượng micro hoặc ổ khóa trên thanh địa chỉ, chọn Cho phép, rồi bấm Thu âm lại.'}else fallback()}
  };
@@ -220,17 +220,17 @@ const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
 const gN=s=>String(s).toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
 function gLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=[];for(let j=0;j<=n;j++)p[j]=j;for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
 const gSim=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-gLev(a,b)/L:1};
-function startSR(){
+function startSR(hk){
  const o={alts:[],done:false,p:null};
  if(!SRC||location.protocol==='file:')return o; /* mở từ file trong máy thì nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
- try{const r=new SRC();r.lang='en-US';r.interimResults=false;r.maxAlternatives=5;r.continuous=false;
+ try{const r=new SRC();r.lang='en-US';r.interimResults=true;r.onstart=()=>{try{hk&&hk.ready&&hk.ready()}catch(x){}};r.maxAlternatives=5;r.continuous=false;
   o.p=new Promise(res=>{r.onresult=e=>{try{const top=[];for(let i=0;i<e.results.length;i++)top.push(e.results[i][0]);
     const joined=top.map(x=>x.transcript).join(' ');const conf=top.reduce((s,x)=>s+(x.confidence||0),0)/Math.max(1,top.length);
-    o.alts.push({t:joined,c:conf});const f=e.results[0];for(let k=1;k<f.length;k++)o.alts.push({t:f[k].transcript,c:f[k].confidence||0})}catch(x){}};
+    o.alts.push({t:joined,c:conf});const f=e.results[0];for(let k=1;k<f.length;k++)o.alts.push({t:f[k].transcript,c:f[k].confidence||0})}catch(x){}try{const fin=e.results[e.results.length-1].isFinal,tg=hk&&hk.target?gN(hk.target):'';const hit=tg&&o.alts.some(z=>(' '+gN(gFix(z.t))+' ').includes(' '+tg+' '));if((fin||hit)&&!o.fired){o.fired=1;hk&&hk.done&&hk.done()}}catch(x){}};
    r.onerror=()=>{o.err=1;res()};r.onend=()=>{o.done=true;res()};});
   r.start();o.r=r}catch(e){o.err=1}
  return o}
-function stopSR(o){return new Promise(res=>{if(!o||!o.p){res();return}try{o.r.stop()}catch(e){}const t=setTimeout(res,2500);o.p.then(()=>{clearTimeout(t);res()})})}
+function stopSR(o){return new Promise(res=>{if(!o||!o.p){res();return}try{o.r.stop()}catch(e){}const t=setTimeout(res,o.fired?500:1200);o.p.then(()=>{clearTimeout(t);res()})})}
 /* đúng chữ + đúng âm từ kết quả nhận dạng giọng nói */
 function scoreWords(target,o){
  const tw=gN(target).split(' ');
@@ -296,7 +296,7 @@ async function gradeIt(blob,w,sro,box){
   dung=Math.round((ws.chu*.6+ws.am*.4)*100);
   const heard=`Máy nghe được: “<b>${esc(ws.heard)}</b>”.`;
   if(!bad.length){dung=100;head='✅ Con đọc ĐÚNG rồi!';cls='ok';note=heard}
-  else if(ws.chu>=.5||ws.am>=.7){head='🟡 Gần đúng, còn sai một chút';cls='';note=`${heard} Cần đọc: “<b>${esc(target)}</b>”. Con luyện lại: <b>${bad.map(esc).join(', ')}</b>.`}
+  else if(ws.chu>=.5||ws.am>=.5){head='🟡 Gần đúng, còn sai một chút';cls='';note=`${heard} Cần đọc: “<b>${esc(target)}</b>”. Con luyện lại: <b>${bad.map(esc).join(', ')}</b>.`}
   else{dung=Math.min(dung,40);head='❌ Chưa đúng, con đọc lại nhé';cls='no';note=`${heard} Cần đọc: “<b>${esc(target)}</b>”. Bấm “Giọng mẫu” nghe rồi thu lại.`}
  }else if(location.protocol==='file:'){note='Trang đang mở từ file trong máy nên máy chưa chấm được đúng sai. Mở bằng link trên mạng (quét mã QR) bằng Chrome hoặc Edge để chấm.'}
  else if(!SRC){note='Trình duyệt này chưa chấm được đúng sai. Mở trang bằng Chrome hoặc Edge nhé.'}
