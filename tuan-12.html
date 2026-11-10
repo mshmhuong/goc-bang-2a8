@@ -157,8 +157,9 @@ function beep(ok){try{ac=ac||new (window.AudioContext||window.webkitAudioContext
 const sp=w=>`<div class="row" style="margin-top:12px"><button class="btn blue" onclick="event.stopPropagation();say('${w.en}')">🔊 Nghe</button><button class="btn" onclick="event.stopPropagation();say('${w.en}',1)">🐢 Nghe chậm</button></div>`;
 
 /* ---- recorder: record own voice, play it back next to the model voice ---- */
+let MIC=null;try{addEventListener('pagehide',()=>{try{if(MIC)MIC.getTracks().forEach(t=>t.stop())}catch(e){}MIC=null})}catch(e){}
 let REC={url:null,mr:null,stream:null,timer:null,audio:null};
-function stopRec(){try{if(REC.sro&&REC.sro.r)REC.sro.r.abort()}catch(e){}REC.sro=null;try{clearTimeout(REC.timer);if(REC.mr&&REC.mr.state==='recording')REC.mr.stop();if(REC.stream)REC.stream.getTracks().forEach(t=>t.stop());if(REC.audio)REC.audio.pause()}catch(e){}REC.mr=null;REC.stream=null}
+function stopRec(){try{if(REC.sro&&REC.sro.r)REC.sro.r.abort()}catch(e){}REC.sro=null;try{clearTimeout(REC.timer);if(REC.mr&&REC.mr.state==='recording')REC.mr.stop();if(REC.audio)REC.audio.pause()}catch(e){}REC.mr=null;REC.stream=null}
 function recHTML(){return `<div class="rec" onclick="event.stopPropagation()">
  <div class="label">🎙️ Thu âm giọng con</div>
  <div class="row" style="margin-top:8px">
@@ -188,14 +189,15 @@ function bindRec(w){
   if(REC.mr&&REC.mr.state==='recording'){REC.mr.stop();return}
   if(!navigator.mediaDevices||!window.MediaRecorder){fallback();return}
   try{
-   const st=await navigator.mediaDevices.getUserMedia({audio:true});REC.stream=st;
+   /* giữ micro mở suốt buổi học: trình duyệt chỉ hỏi quyền 1 lần, không hỏi lại mỗi lần thu */
+   const live=MIC&&MIC.getAudioTracks().some(t=>t.readyState==='live');if(!live)MIC=await navigator.mediaDevices.getUserMedia({audio:true});const st=MIC;REC.stream=st;
    const chunks=[];const mr=new MediaRecorder(st);REC.mr=mr;
    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-   mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());btn.textContent='🔴 Thu lại';btn.classList.remove('recording');
+   mr.onstop=()=>{btn.textContent='🔴 Thu lại';btn.classList.remove('recording');
     ready(new Blob(chunks,{type:(mr.mimeType||'audio/webm').split(';')[0]}))};
    REC.sro=startSR();{const bx=$('#scoreBox');if(bx)bx.hidden=true}mr.start();btn.textContent='⏹ Dừng';btn.classList.add('recording');tip.textContent='Đang thu... con đọc to nhé!';
    REC.timer=setTimeout(()=>{if(mr.state==='recording')mr.stop()},6000);
-  }catch(e){fallback()}
+  }catch(e){if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')){tip.textContent='Máy chưa cho phép dùng micro. Bấm biểu tượng micro hoặc ổ khóa trên thanh địa chỉ, chọn Cho phép, rồi bấm Thu âm lại.'}else fallback()}
  };
 }
 
@@ -206,7 +208,7 @@ function gLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let
 const gSim=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-gLev(a,b)/L:1};
 function startSR(){
  const o={alts:[],done:false,p:null};
- if(!SRC)return o;
+ if(!SRC||location.protocol==='file:')return o; /* mở từ file trong máy thì phần nhận chữ làm trình duyệt hỏi micro mỗi lần, nên bỏ qua */
  try{const r=new SRC();r.lang='en-US';r.interimResults=false;r.maxAlternatives=5;r.continuous=false;
   o.p=new Promise(res=>{r.onresult=e=>{try{const top=[];for(let i=0;i<e.results.length;i++)top.push(e.results[i][0]);
     const joined=top.map(x=>x.transcript).join(' ');const conf=top.reduce((s,x)=>s+(x.confidence||0),0)/Math.max(1,top.length);
