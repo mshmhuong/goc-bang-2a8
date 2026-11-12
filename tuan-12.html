@@ -41,18 +41,29 @@ html.khoa #congMa{display:flex}
   fetch('https://dao-kho-bau-toan.vercel.app/api/tham-gia',{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({loai:'ghe',ma:m})})
    .then(r=>{if(r.ok)try{localStorage.setItem('gb2a8bao',n)}catch(e){}}).catch(()=>{})}catch(e){}};
  let nho='';try{nho=localStorage.getItem('gb2a8ma')||''}catch(e){}
- if(dung(nho)){bao(nho);return}
+ let duyet='';try{duyet=localStorage.getItem('gb2a8duyet')||''}catch(e){}
+ if(dung(nho)||(nho&&nho===duyet)){bao(nho);return}
  const goc=document.documentElement;
  goc.classList.add('khoa');
  const c=document.createElement('div');c.id='congMa';
  c.innerHTML='<div class="hop"><div class="bang"></div><p>Bố mẹ nhập <b>mã riêng của con</b> để vào nhé.</p><input id="oMa" maxlength="12" inputmode="numeric" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Mã của con" aria-label="Mã của con"><p class="nho" id="vdMa" style="margin-top:6px"></p><p class="loi" id="loiMa" hidden>Mã chưa đúng. Bố mẹ xem lại mã trong tin nhắn riêng nhé.</p><button id="vaoMa" type="button">Vào</button><p class="nho">Mã nằm trong tin nhắn riêng ban đại diện lớp gửi bố mẹ. Nhập đúng một lần, lần sau máy tự nhớ.</p></div>';
  c.querySelector('.bang').textContent=TEN;c.querySelector('#vdMa').textContent='Mã gồm 6 số';
  const o=c.querySelector('#oMa'),loi=c.querySelector('#loiMa');
+ const mo=()=>{goc.classList.remove('khoa');c.remove();scrollTo(0,0)};
+ // Mã không có trong danh sách của trang thì hỏi máy chủ Đảo Kho Báu (danh sách mới nhất của lớp).
+ const hoi=m=>fetch('https://dao-kho-bau-toan.vercel.app/api/tham-gia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loai:'ghe',ma:m})})
+  .then(r=>r.ok?r.json().catch(()=>({})).then(j=>j.ok!==false):false);
+ let dangHoi=false;
  const vao=()=>{
-  if(!dung(o.value)){loi.hidden=false;o.select();return}
-  try{localStorage.setItem('gb2a8ma',gon(o.value))}catch(e){}
-  bao(gon(o.value));
-  goc.classList.remove('khoa');c.remove();scrollTo(0,0)};
+  const m=gon(o.value);
+  if(dung(m)){try{localStorage.setItem('gb2a8ma',m)}catch(e){}bao(m);mo();return}
+  if(!m||dangHoi){if(!m){loi.hidden=false;o.select()}return}
+  dangHoi=true;const nut=c.querySelector('#vaoMa'),chu=nut.textContent;nut.textContent='Đang kiểm tra…';nut.disabled=true;
+  hoi(m).then(okk=>{
+   if(okk){try{localStorage.setItem('gb2a8ma',m);localStorage.setItem('gb2a8duyet',m);localStorage.setItem('gb2a8bao',new Date().toDateString())}catch(e){}mo()}
+   else{loi.textContent='Mã chưa đúng. Bố mẹ xem lại mã trong tin nhắn riêng nhé.';loi.hidden=false;o.select()}
+  }).catch(()=>{loi.textContent='Chưa kiểm tra được mã vì mạng chập chờn. Bố mẹ bấm Vào lại nhé.';loi.hidden=false})
+  .finally(()=>{dangHoi=false;nut.textContent=chu;nut.disabled=false})};
  c.querySelector('#vaoMa').onclick=vao;
  o.onkeydown=e=>{if(e.key==='Enter')vao()};
  o.oninput=()=>{loi.hidden=true};
