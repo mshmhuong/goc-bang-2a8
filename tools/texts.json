@@ -1,5 +1,5 @@
 {
- "voice": "en-US-AriaNeural",
+ "voice": "en-US-AvaNeural",
  "rate": "-10%",
  "items": [
   [
@@ -150,26 +150,9 @@
   "5 and 4 is 9 in total.",
   "Hello! I am ready. Farm, juice, jelly."
  ],
- "probe": [
-  "en-US-AriaNeural",
-  "en-US-JennyNeural",
-  "en-US-AvaNeural",
-  "en-US-AnaNeural",
-  "en-US-EmmaNeural",
-  "en-US-MichelleNeural",
-  "en-GB-SoniaNeural",
-  "en-GB-LibbyNeural",
-  "en-US-AvaMultilingualNeural",
-  "en-US-EmmaMultilingualNeural",
-  "en-GB-MaisieNeural",
-  "en-US-AndrewNeural"
- ],
+ "probe": [],
  "img": {
-  "juice": "glass of orange juice",
-  "juice2": "fruit juice glasses",
-  "jelly": "red jelly dessert",
-  "jelly2": "jelly dessert gelatin",
-  "cow": "cow farm field",
-  "apples": "red apples"
+  "cow": "cows grazing on farm",
+  "juice3": "orange juice glass white background"
  }
 }
