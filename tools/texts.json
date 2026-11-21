@@ -1,0 +1,175 @@
+{
+ "voice": "en-US-AriaNeural",
+ "rate": "-10%",
+ "items": [
+  [
+   "on the farm",
+   0
+  ],
+  [
+   "on the farm",
+   1
+  ],
+  [
+   "The cow is ....",
+   0
+  ],
+  [
+   "The cow is on the farm.",
+   0
+  ],
+  [
+   "Yes, there is.",
+   0
+  ],
+  [
+   "Yes, there is.",
+   1
+  ],
+  [
+   "Is there a fox? ...",
+   0
+  ],
+  [
+   "Is there a fox? Yes, there is.",
+   0
+  ],
+  [
+   "No, there isn't.",
+   0
+  ],
+  [
+   "No, there isn't.",
+   1
+  ],
+  [
+   "Is there a box? ...",
+   0
+  ],
+  [
+   "Is there a box? No, there isn't.",
+   0
+  ],
+  [
+   "There isn't an ox.",
+   0
+  ],
+  [
+   "There isn't an ox.",
+   1
+  ],
+  [
+   "Is there an ox? No. ...",
+   0
+  ],
+  [
+   "Is there an ox? No. There isn't an ox.",
+   0
+  ],
+  [
+   "juice",
+   0
+  ],
+  [
+   "juice",
+   1
+  ],
+  [
+   "I like orange ....",
+   0
+  ],
+  [
+   "I like orange juice.",
+   0
+  ],
+  [
+   "jelly",
+   0
+  ],
+  [
+   "jelly",
+   1
+  ],
+  [
+   "I eat red ....",
+   0
+  ],
+  [
+   "I eat red jelly.",
+   0
+  ],
+  [
+   "in total",
+   0
+  ],
+  [
+   "in total",
+   1
+  ],
+  [
+   "5 and 4 is 9 ....",
+   0
+  ],
+  [
+   "5 and 4 is 9 in total.",
+   0
+  ],
+  [
+   "Hello! I am ready. Farm, juice, jelly.",
+   0
+  ]
+ ],
+ "keys": [
+  "on the farm",
+  "on the farm|s",
+  "The cow is ....",
+  "The cow is on the farm.",
+  "Yes, there is.",
+  "Yes, there is.|s",
+  "Is there a fox? ...",
+  "Is there a fox? Yes, there is.",
+  "No, there isn't.",
+  "No, there isn't.|s",
+  "Is there a box? ...",
+  "Is there a box? No, there isn't.",
+  "There isn't an ox.",
+  "There isn't an ox.|s",
+  "Is there an ox? No. ...",
+  "Is there an ox? No. There isn't an ox.",
+  "juice",
+  "juice|s",
+  "I like orange ....",
+  "I like orange juice.",
+  "jelly",
+  "jelly|s",
+  "I eat red ....",
+  "I eat red jelly.",
+  "in total",
+  "in total|s",
+  "5 and 4 is 9 ....",
+  "5 and 4 is 9 in total.",
+  "Hello! I am ready. Farm, juice, jelly."
+ ],
+ "probe": [
+  "en-US-AriaNeural",
+  "en-US-JennyNeural",
+  "en-US-AvaNeural",
+  "en-US-AnaNeural",
+  "en-US-EmmaNeural",
+  "en-US-MichelleNeural",
+  "en-GB-SoniaNeural",
+  "en-GB-LibbyNeural",
+  "en-US-AvaMultilingualNeural",
+  "en-US-EmmaMultilingualNeural",
+  "en-GB-MaisieNeural",
+  "en-US-AndrewNeural"
+ ],
+ "img": {
+  "juice": "glass of orange juice",
+  "juice2": "fruit juice glasses",
+  "jelly": "red jelly dessert",
+  "jelly2": "jelly dessert gelatin",
+  "cow": "cow farm field",
+  "apples": "red apples"
+ }
+}
